@@ -44,6 +44,7 @@ func main() {
 	http.HandleFunc("/", hello)
 	// create the server object
 	srvr := http.Server{Addr: ":8080", TLSConfig: config}
+	srvr.TLSConfig.BuildNameToCertificate()
 	// set a callback for connection state changes
 	srvr.ConnState = connState
 	// TODO: figure out how to access the client cert
@@ -52,9 +53,15 @@ func main() {
 }
 
 func connState(conn net.Conn, state http.ConnState) {
-	log.Printf("in conn state %s\n", state)
-	tlsConn := tls.Server(conn, config)
-	log.Printf("%+v", tlsConn)
+	tlscon, ok := conn.(*tls.Conn)
+	if !ok {
+		panic("not a tls connection")
+	}
+	if state == http.StateActive {
+		connState := tlscon.ConnectionState()
+		sub := connState.PeerCertificates[0].Subject.CommonName
+		log.Printf("Verified client cert common name: %s\n", sub)
+	}
 }
 
 // this seems like a way to retrieve the right cert based on SNI
