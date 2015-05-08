@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -20,6 +21,8 @@ func hello(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "hello")
 }
 
+var config *tls.Config
+
 func main() {
 	flag.Parse()
 
@@ -32,7 +35,7 @@ func main() {
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	// create a config object that requires verified client certs
-	config := &tls.Config{
+	config = &tls.Config{
 		ClientCAs:      caCertPool,
 		ClientAuth:     tls.RequireAndVerifyClientCert,
 		GetCertificate: clientCert,
@@ -41,12 +44,21 @@ func main() {
 	http.HandleFunc("/", hello)
 	// create the server object
 	srvr := http.Server{Addr: ":8080", TLSConfig: config}
+	// set a callback for connection state changes
+	srvr.ConnState = connState
 	// TODO: figure out how to access the client cert
 	err = srvr.ListenAndServeTLS(*certFile, *keyFile)
 	panic(err)
 }
 
+func connState(conn net.Conn, state http.ConnState) {
+	log.Printf("in conn state %s\n", state)
+	tlsConn := tls.Server(conn, config)
+	log.Printf("%+v", tlsConn)
+}
+
 // this seems like a way to retrieve the right cert based on SNI
 func clientCert(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	log.Print("in negotiation callback")
+	log.Print("in negotiation/SNI callback")
+	return nil, nil
 }

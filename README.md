@@ -10,5 +10,4 @@ The client and server certs are issued by that CA.
 The client verifies that the server has a cert issued by the CA and that the
 server name is "myserver". Notice that it overrides the normal DNS-based checks.
 
-The service verifies that the client has a cert issued by the CA and that
-the common name matches a specified value.
+The service verifies that the client has a cert issued by the CA
